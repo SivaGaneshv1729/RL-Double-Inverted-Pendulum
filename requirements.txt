@@ -1,0 +1,9 @@
+pygame
+pymunk
+stable-baselines3[extra]
+torch
+pandas
+matplotlib
+gymnasium
+shimmy>=2.0
+imageio
