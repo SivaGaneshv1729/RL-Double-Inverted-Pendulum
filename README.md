@@ -1,56 +1,72 @@
-# Double Inverted Pendulum Reinforcement Learning: The Godzone Protocol
+# Double Inverted Pendulum RL: The Godzone Protocol
 
 A high-fidelity 2D physics-based control environment built with `Pymunk` and `Pygame`, solved using a highly-tuned Proximal Policy Optimization (PPO) agent. This project demonstrates stable control of a chaotic double inverted pendulum system through iterative reward engineering and physics sub-stepping.
 
-## Environment Design
-The environment simulates a cart on a 1D track with a double-linked pendulum attached, characterized by its non-linear and chaotic dynamics.
-- **Physics Engine**: `Pymunk` with high-resolution sub-stepping (40 steps per frame).
-- **Visualization**: `Pygame` for real-time rendering and evaluation.
+## 🚀 Final Project Stats (Iteration 6)
+- **Training Duration**: 1,000,000 timesteps.
+- **Mean Reward**: **~7,500** (a 30x improvement over baseline).
+- **Control Quality**: High-precision vertical balance within 0.03 radians.
+- **Physics Fidelity**: 40 sub-steps per frame for maximum stability.
+
+---
+
+## 📖 Documentation
+All technical details and visual walkthroughs are located in the `docs/` folder:
+- **[TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)**: Deep dive into the control theory and "Godzone" reward engineering.
+- **[WALKTHROUGH.md](docs/WALKTHROUGH.md)**: Visual guide with performance comparison and GIFs.
+
+---
+
+## 🛠️ Instructions to Run
+
+### 1. Training the Agent
+To train the agent with the optimized "Godzone" reward structure:
+```bash
+# Docker (Recommended)
+docker-compose run train
+
+# Local
+python train.py --timesteps 1000000 --reward_type shaped
+```
+
+### 2. Evaluation & Visualization
+To see the trained agent in action:
+```bash
+# To generate a performance GIF (saved to media/agent_final.gif)
+docker-compose run evaluate-gif
+
+# Local (requires a display)
+python evaluate.py --model_path models/ppo_double_pendulum_shaped.zip
+```
+
+### 3. Monitoring Progress
+You can track the rewards and episode lengths in real-time or via the logs:
+```bash
+# View the last 20 episodes
+tail -n 20 logs/shaped/monitor.csv
+```
+
+---
+
+## 🔄 How to "Reboot" (Reset) the Project
+If you wish to clear all progress and start fresh (re-train from scratch):
+
+1. **Clean the Environment**:
+   ```bash
+   # Removes models, logs, and compiled caches
+   rm -rf models/*.zip logs/shaped/* __pycache__
+   ```
+2. **Reset the Media**:
+   ```bash
+   # Removes generated GIFs and plots
+   rm -rf media/*.gif reward_comparison.png
+   ```
+3. **Re-run Training**:
+   Follow the **Training** instructions above to restart the 1,000,000 step cycle.
+
+---
+
+## ⚙️ Environment Setup
 - **Observation Space**: 6D vector `[cart_x, cart_vx, pole1_angle, pole1_angular_vel, pole2_angle, pole2_angular_vel]`.
-- **Action Space**: 1D continuous motor force `[-1, 1]` with an 800.0 authority magnitude.
-
-## The Godzone Protocol (Iteration 6)
-The project culminated in "The Godzone Protocol," a reward structure designed to forcefully incentivize high-precision verticality over passive survival.
-
-### Reward Function Components:
-1. **Verticality Bonus (Godzone)**: **+100.0** reward for maintaining both poles within 0.03 radians of vertical.
-2. **Precision Bonus**: **+20.0** reward for maintaining both poles within 0.08 radians.
-3. **Living Bonus**: **+10.0** survival reward (reduced from earlier iterations to prioritize quality).
-4. **Kinetic Penalty**: Heavy penalties for high angular velocity to suppress high-frequency jitter.
-5. **Center Constraint**: Quadratic penalty for distance from the track center.
-
-## Performance Justification
-Through six iterations of tuning, the agent reached the following milestones:
-- **Training Epochs**: 1,000,000 timesteps.
-- **Reward Growth**: 30x increase from baseline (~250 to ~7,500+).
-- **Stability**: Recovery authority increased to 800, enabling the agent to save trajectories from 50+ degree tilts.
-
-## How to Run
-
-### Setup with Docker
-The project is fully containerized for reproducible results.
-
-1. **Build the image**:
-   ```bash
-   docker-compose build
-   ```
-
-2. **Train the agent (Iteration 6)**:
-   ```bash
-   docker-compose run train
-   ```
-
-3. **Evaluate and visualize**:
-   Captures the agent in action and saves a GIF to `media/agent_final.gif`:
-   ```bash
-   docker-compose run evaluate-gif
-   ```
-
-### Local Setup
-1. Install dependencies: `pip install -r requirements.txt`
-2. Train: `python train.py --timesteps 1000000 --reward_type shaped`
-3. Evaluate: `python evaluate.py --model_path models/ppo_double_pendulum_shaped.zip`
-
-## Documentation & Analysis
-- **[TECHNICAL_REPORT.md](TECHNICAL_REPORT.md)**: Deep dive into the control theory and reward engineering choices.
-- **[walkthrough.md](C:\Users\user\.gemini\antigravity\brain\299460ea-1a97-4486-878c-d33c0a53ba8d\walkthrough.md)**: Visual walkthrough with demonstration GIFs.
+- **Action Space**: 1D continuous motor force `[-1, 1]`.
+- **Infrastructure**: Fully containerized via `Dockerfile` and `docker-compose.yml`.
