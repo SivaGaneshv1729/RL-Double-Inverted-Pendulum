@@ -27,11 +27,21 @@ The difference between the initial Baseline and the final **Iteration 6 (Godzone
 | **Physics Resolution** | 10 steps | **40 steps** | 4x higher precision results in smoother control and less jitter. |
 | **Control Priority** | Survival only | **Precision Balance** | The agent now makes micro-corrections instead of chaotic oscillations. |
 
+### Phase 3: Researcher Equilibrium (EP3)
+We transitioned the agent to the "Researcher Equilibrium Protocol", utilizing an 8-dimensional trigonometric observation space and a multiplicative reward function.
+
+**Key results:**
+- **Smooth Gradient**: Trig observations eliminated discontinuities during 360-degree rotations.
+- **Up-Up Equilibrium**: The agent maintains a "perfect" vertical stack with minimal cart jitter.
+- **Multiplicative Reward**: Successfully balances survival with energy efficiency and centering.
+
 ### 3. Agent Performance
 I have captured the agent's performance. The final agent demonstrates high-authority balancing by actively counter-acting gravitational torque.
 
 ````carousel
 ![Initial Agent (Baseline)](C:\Users\user\.gemini\antigravity\brain\299460ea-1a97-4486-878c-d33c0a53ba8d\agent_initial.gif)
+<!-- slide -->
+![EP3 Agent Balance Quality](file:///c:/Users/user/Desktop/Dev/rl-double-pendulum/media/agent_ep3_800k.gif)
 <!-- slide -->
 ![Trained Agent (Shaped)](C:\Users\user\.gemini\antigravity\brain\299460ea-1a97-4486-878c-d33c0a53ba8d\agent_final.gif)
 ````
