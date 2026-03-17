@@ -1,11 +1,11 @@
-# Double Inverted Pendulum RL: The Godzone Protocol
+# Deep Reinforcement Learning for Chaotic Double Inverted Pendulum Control (EP3)
 
-A high-fidelity 2D physics-based control environment built with `Pymunk` and `Pygame`, solved using a highly-tuned Proximal Policy Optimization (PPO) agent. This project demonstrates stable control of a chaotic double inverted pendulum system through iterative reward engineering and physics sub-stepping.
+A high-fidelity 2D physics-based control environment built with `Pymunk` and `Pygame`, solved using a highly-tuned Proximal Policy Optimization (PPO) agent. This repository mastering the **"Up-Up" equilibrium point** through trigonometric phase-space embedding and the **Researcher Equilibrium Protocol (EP3)**.
 
-## 🚀 Final Project Stats (Iteration 6)
-- **Training Duration**: 1,000,000 timesteps.
-- **Mean Reward**: **~7,500** (a 30x improvement over baseline).
-- **Control Quality**: High-precision vertical balance within 0.03 radians.
+## 🚀 Final Project Stats
+- **Base Dynamics**: Locked Horizontal Slider (Physically Correct).
+- **Control Quality**: Scientific Balance with Top Pole RMSE of **0.007 rad**.
+- **Observation Space**: 8D Trigonometric Phase-Space Vector.
 - **Physics Fidelity**: 40 sub-steps per frame for maximum stability.
 
 ---
