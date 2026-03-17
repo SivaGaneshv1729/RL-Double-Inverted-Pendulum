@@ -10,6 +10,7 @@ def evaluate():
     parser.add_argument("--model_path", type=str, required=True, help="Path to the saved model .zip file")
     parser.add_argument("--episodes", type=int, default=5, help="Number of episodes to run")
     parser.add_argument("--gif_name", type=str, default=None, help="If provided, save a GIF of the evaluation")
+    parser.add_argument("--steps", type=int, default=1000, help="Maximum steps per episode")
     args = parser.parse_args()
 
     # Create media directory if saving GIF
@@ -33,10 +34,12 @@ def evaluate():
         
         print(f"Starting Episode {ep + 1}")
         
-        while not (done or truncated):
+        step_count = 0
+        while not (done or truncated) and step_count < args.steps:
             action, _states = model.predict(obs, deterministic=True)
             obs, reward, done, truncated, info = env.step(action)
             score += reward
+            step_count += 1
             
             if args.gif_name:
                 frames.append(env.render())

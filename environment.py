@@ -62,7 +62,7 @@ class DoublePendulumEnv(gym.Env):
         self.space.add(ground_line)
 
         # Cart
-        self.cart_body = pymunk.Body(self.cart_mass, pymunk.inf) # Moment = inf prevents rotation
+        self.cart_body = pymunk.Body(self.cart_mass, float('inf')) # Moment = inf prevents rotation
         self.cart_body.position = (self.screen_width // 2, self.screen_height // 2)
         cart_shape = pymunk.Poly.create_box(self.cart_body, (50, 30))
         cart_shape.friction = 0.0 # Frictionless cart

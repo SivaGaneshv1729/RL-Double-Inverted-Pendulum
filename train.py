@@ -54,9 +54,16 @@ def train():
         policy_kwargs=policy_kwargs,
     )
 
+    # Callbacks
+    checkpoint_callback = CheckpointCallback(
+        save_freq=100000,
+        save_path="./models/",
+        name_prefix=f"ppo_double_pendulum_{args.reward_type}_checkpoint"
+    )
+
     # Train the agent
     print(f"Starting training for {args.timesteps} timesteps...")
-    model.learn(total_timesteps=args.timesteps)
+    model.learn(total_timesteps=args.timesteps, callback=checkpoint_callback)
 
     # Save the model
     final_save_path = f"{args.save_path}_{args.reward_type}"

@@ -1,6 +1,8 @@
 .env
 __pycache__/
 logs/
-models/
-*.zip
+models/*
+!models/ppo_double_pendulum_final_ep3_shaped.zip
 *.log
+!media/*.gif
+!media/*.png
