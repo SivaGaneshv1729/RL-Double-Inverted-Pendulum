@@ -33,11 +33,8 @@ class DoublePendulumEnv(gym.Env):
         self.force_mag = 800.0 # High authority for Iteration 6
 
         # Observation space: 
-        # [cart_x, cart_vx, pole1_angle, pole1_angular_vel, pole2_angle, pole2_angular_vel]
-        # Normalized observation space
-        low = np.array([-1.0, -1.0, -1.0, -1.0, -1.0, -1.0], dtype=np.float32)
-        high = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0], dtype=np.float32)
-        self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
+        # [y, y_dot, sin(theta1), cos(theta1), theta1_dot, sin(theta2), cos(theta2), theta2_dot]
+        self.observation_space = spaces.Box(low=-1.0, high=1.0, shape=(8,), dtype=np.float32)
 
         # Action space: Continuous force applied to the cart [-1, 1]
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
@@ -65,7 +62,7 @@ class DoublePendulumEnv(gym.Env):
         self.space.add(ground_line)
 
         # Cart
-        self.cart_body = pymunk.Body(self.cart_mass, pymunk.moment_for_box(self.cart_mass, (50, 30)))
+        self.cart_body = pymunk.Body(self.cart_mass, pymunk.inf) # Moment = inf prevents rotation
         self.cart_body.position = (self.screen_width // 2, self.screen_height // 2)
         cart_shape = pymunk.Poly.create_box(self.cart_body, (50, 30))
         cart_shape.friction = 0.0 # Frictionless cart
@@ -117,19 +114,21 @@ class DoublePendulumEnv(gym.Env):
         cart_x = (self.cart_body.position.x - self.screen_width / 2) / (self.screen_width / 2)
         cart_vx = np.clip(self.cart_body.velocity.x / 500.0, -1.0, 1.0)
         
-        def normalize_angle(a):
-            return (a + np.pi) % (2 * np.pi) - np.pi
+        # Angles and velocities
+        theta1 = self.pole1_body.angle
+        v1 = np.clip(self.pole1_body.angular_velocity / 10.0, -1.0, 1.0)
+        theta2 = self.pole2_body.angle
+        v2 = np.clip(self.pole2_body.angular_velocity / 10.0, -1.0, 1.0)
 
-        # Angle normalized to [-1, 1] for the [-pi/2, pi/2] range 
-        p1_angle = np.clip(normalize_angle(self.pole1_body.angle) / (np.pi / 2), -1.0, 1.0)
-        p1_avel = np.clip(self.pole1_body.angular_velocity / 10.0, -1.0, 1.0)
-        p2_angle = np.clip(normalize_angle(self.pole2_body.angle) / (np.pi / 2), -1.0, 1.0)
-        p2_avel = np.clip(self.pole2_body.angular_velocity / 10.0, -1.0, 1.0)
-
-        return np.array([cart_x, cart_vx, p1_angle, p1_avel, p2_angle, p2_avel], dtype=np.float32)
+        # Researcher Instruction: Trig Observations for smooth learning
+        return np.array([
+            cart_x, cart_vx, 
+            np.sin(theta1), np.cos(theta1), v1,
+            np.sin(theta2), np.cos(theta2), v2
+        ], dtype=np.float32)
 
     def step(self, action):
-        # Apply force
+        # Apply force (u)
         force = action[0] * self.force_mag
         self.cart_body.apply_force_at_local_point((force, 0), (0, 0))
 
@@ -141,13 +140,16 @@ class DoublePendulumEnv(gym.Env):
         obs = self._get_obs()
         reward = self._calculate_reward(obs, action)
         
-        # Wider limit for recovery authority verification
-        cart_x, _, p1_norm_angle, _, p2_norm_angle, _ = obs
+        # Termination check
+        theta1 = self.pole1_body.angle
+        theta2 = self.pole2_body.angle
+        cart_x = (self.cart_body.position.x - self.screen_width / 2) / (self.screen_width / 2)
         
-        limit = 0.6 # ~54 degrees
+        # Let's use a 45 degree (pi/4) fall limit for "Up-Up" state learning
+        limit = np.pi / 4
         terminated = bool(
-            abs(p1_norm_angle) > limit or
-            abs(p2_norm_angle) > limit or
+            abs(theta1) > limit or
+            abs(theta2) > limit or
             abs(cart_x) > 0.95
         )
         truncated = False
@@ -158,29 +160,33 @@ class DoublePendulumEnv(gym.Env):
         return obs, reward, terminated, truncated, {}
 
     def _calculate_reward(self, obs, action):
-        cart_x, cart_vx, p1_angle, p1_avel, p2_angle, p2_avel = obs
+        # Researcher Equilibrium Protocol (EP3) Implementation
+        # y: cart_x, u: action[0]
+        y, y_dot, sin1, cos1, v1, sin2, cos2, v2 = obs
+        u = action[0]
         
-        # Iteration 6: Focus on extreme precision rewards
-        dist_reward = 2.0 - (p1_angle**2 + p2_angle**2)
+        # Angles are already maintained in the physics bodies
+        theta1 = self.pole1_body.angle
+        theta2 = self.pole2_body.angle
+        theta1_dot = self.pole1_body.angular_velocity
+        theta2_dot = self.pole2_body.angular_velocity
 
-        if self.reward_type == 'shaped':
-            reward = dist_reward
-            # 1. "Protocol Godzone": Extreme vertical alignment priority
-            if abs(p1_angle) < 0.03 and abs(p2_angle) < 0.03:
-                reward += 100.0 # Extreme reward for verticality
-            elif abs(p1_angle) < 0.08 and abs(p2_angle) < 0.08:
-                reward += 20.0
-            
-            # 2. Velocity Penalty: Heavy to discourage jitter in vertical mode
-            reward -= (p1_avel**2 + p2_avel**2) * 2.0
-            
-            # 3. Center Penalty
-            reward -= (cart_x**2) * 2.0
-            
-            # 4. Living Bonus: High but not dominating the Godzone bonus
-            reward += 10.0 
-        else:
-            reward = dist_reward + 1.0
+        # 1. Upright Bonus
+        r_theta1 = 0.5 + 0.5 * np.cos(theta1)
+        r_theta2 = 0.5 + 0.5 * np.cos(theta2)
+
+        # 2. Center Constraint (y is normalized cart position)
+        r_y = np.exp(-0.5 * abs(y * (self.screen_width / 2) / 100.0)) # Scaling y to a reasonable 'researcher' range
+
+        # 3. Calmness Constraint
+        r_v1 = np.exp(-0.02 * abs(theta1_dot))
+        r_v2 = np.exp(-0.02 * abs(theta2_dot))
+
+        # 4. Energy Efficiency Constraint
+        r_u = np.exp(-0.015 * abs(u))
+
+        # Total Multiplicative Reward
+        reward = r_u * r_y * r_theta1 * r_theta2 * r_v1 * r_v2
 
         return float(reward)
 
