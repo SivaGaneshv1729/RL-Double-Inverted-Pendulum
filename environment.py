@@ -60,14 +60,15 @@ class DoublePendulumEnv(gym.Env):
         # Ground/Track
         static_body = self.space.static_body
         ground_line = pymunk.Segment(static_body, (0, self.screen_height // 2), (self.screen_width, self.screen_height // 2), 2)
-        ground_line.friction = 0.5
+        ground_line.friction = 0.0 # Frictionless track
+        ground_line.filter = pymunk.ShapeFilter(group=1) # Don't collide with cart/poles
         self.space.add(ground_line)
 
         # Cart
         self.cart_body = pymunk.Body(self.cart_mass, pymunk.moment_for_box(self.cart_mass, (50, 30)))
         self.cart_body.position = (self.screen_width // 2, self.screen_height // 2)
         cart_shape = pymunk.Poly.create_box(self.cart_body, (50, 30))
-        cart_shape.friction = 0.5
+        cart_shape.friction = 0.0 # Frictionless cart
         
         # Constraint to track
         track_joint = pymunk.GrooveJoint(static_body, self.cart_body, (0, self.screen_height // 2), (self.screen_width, self.screen_height // 2), (0, 0))
