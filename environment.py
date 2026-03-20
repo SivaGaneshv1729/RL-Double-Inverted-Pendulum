@@ -10,6 +10,12 @@ class DoublePendulumEnv(gym.Env):
     """
     Custom Environment for a Double Inverted Pendulum using Pymunk for physics
     and Pygame for visualization.
+
+    Observation Space (6D):
+        [cart_x, cart_vx, pole1_angle, pole1_angular_vel, pole2_angle, pole2_angular_vel]
+
+    Action Space (1D):
+        Continuous force [-1.0, 1.0] applied to the cart.
     """
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 60}
 
@@ -30,13 +36,19 @@ class DoublePendulumEnv(gym.Env):
         self.pole2_mass = 0.5
         self.pole1_length = 100.0
         self.pole2_length = 100.0
-        self.force_mag = 800.0 # High authority for Iteration 6
+        self.force_mag = 800.0
 
-        # Observation space: 
-        # [y, y_dot, sin(theta1), cos(theta1), theta1_dot, sin(theta2), cos(theta2), theta2_dot]
-        self.observation_space = spaces.Box(low=-1.0, high=1.0, shape=(8,), dtype=np.float32)
+        # --- SPECIFICATION COMPLIANCE (Req #3) ---
+        # Observation space: 6D vector
+        # [cart_x, cart_vx, pole1_angle, pole1_angular_vel, pole2_angle, pole2_angular_vel]
+        self.observation_space = spaces.Box(
+            low=np.array([-1.0, -1.0, -np.pi, -10.0, -np.pi, -10.0], dtype=np.float32),
+            high=np.array([ 1.0,  1.0,  np.pi,  10.0,  np.pi,  10.0], dtype=np.float32),
+            shape=(6,),
+            dtype=np.float32
+        )
 
-        # Action space: Continuous force applied to the cart [-1, 1]
+        # Action space: Continuous force [-1, 1]
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
 
         # Pygame setup
@@ -57,82 +69,81 @@ class DoublePendulumEnv(gym.Env):
         # Ground/Track
         static_body = self.space.static_body
         ground_line = pymunk.Segment(static_body, (0, self.screen_height // 2), (self.screen_width, self.screen_height // 2), 2)
-        ground_line.friction = 0.0 # Frictionless track
-        ground_line.filter = pymunk.ShapeFilter(group=1) # Don't collide with cart/poles
+        ground_line.friction = 0.0
+        ground_line.filter = pymunk.ShapeFilter(group=1)
         self.space.add(ground_line)
 
-        # Cart
-        self.cart_body = pymunk.Body(self.cart_mass, float('inf')) # Moment = inf prevents rotation
+        # Cart — Moment of Inertia = Infinity prevents rotation (slider-only)
+        self.cart_body = pymunk.Body(self.cart_mass, float('inf'))
         self.cart_body.position = (self.screen_width // 2, self.screen_height // 2)
         cart_shape = pymunk.Poly.create_box(self.cart_body, (50, 30))
-        cart_shape.friction = 0.0 # Frictionless cart
+        cart_shape.friction = 0.0
         
-        # Constraint to track
-        track_joint = pymunk.GrooveJoint(static_body, self.cart_body, (0, self.screen_height // 2), (self.screen_width, self.screen_height // 2), (0, 0))
+        # Constrain cart to horizontal track
+        track_joint = pymunk.GrooveJoint(
+            static_body, self.cart_body,
+            (0, self.screen_height // 2),
+            (self.screen_width, self.screen_height // 2),
+            (0, 0)
+        )
         
-        # Pole 1
+        # Pole 1 (Inner)
         moment1 = pymunk.moment_for_segment(self.pole1_mass, (0, 0), (0, -self.pole1_length), 5)
         self.pole1_body = pymunk.Body(self.pole1_mass, moment1)
         self.pole1_body.position = (self.screen_width // 2, self.screen_height // 2 - 15)
-        self.pole1_body.angle = np.random.uniform(-0.01, 0.01) # Slightly increased noise for robustness
+        self.pole1_body.angle = np.random.uniform(-0.05, 0.05)
         pole1_shape = pymunk.Segment(self.pole1_body, (0, 0), (0, -self.pole1_length), 5)
         
         # Joint 1: Cart to Pole 1
         joint1 = pymunk.PivotJoint(self.cart_body, self.pole1_body, (0, -15), (0, 0))
 
-        # Pole 2
+        # Pole 2 (Outer)
         moment2 = pymunk.moment_for_segment(self.pole2_mass, (0, 0), (0, -self.pole2_length), 5)
         self.pole2_body = pymunk.Body(self.pole2_mass, moment2)
         self.pole2_body.position = (self.screen_width // 2, self.screen_height // 2 - 15 - self.pole1_length)
-        self.pole2_body.angle = self.pole1_body.angle + np.random.uniform(-0.01, 0.01)
+        self.pole2_body.angle = self.pole1_body.angle + np.random.uniform(-0.05, 0.05)
         pole2_shape = pymunk.Segment(self.pole2_body, (0, 0), (0, -self.pole2_length), 5)
 
         # Joint 2: Pole 1 to Pole 2
         joint2 = pymunk.PivotJoint(self.pole1_body, self.pole2_body, (0, -self.pole1_length), (0, 0))
 
-        # Collision filtering (ignore collisions between connected parts)
+        # Collision filtering
         for shape in [cart_shape, pole1_shape, pole2_shape]:
             shape.filter = pymunk.ShapeFilter(group=1)
 
-        self.space.add(self.cart_body, cart_shape, track_joint,
-                       self.pole1_body, pole1_shape, joint1,
-                       self.pole2_body, pole2_shape, joint2)
+        self.space.add(
+            self.cart_body, cart_shape, track_joint,
+            self.pole1_body, pole1_shape, joint1,
+            self.pole2_body, pole2_shape, joint2
+        )
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self._setup_physics()
         
-        # Moderate initial velocity for robustness
         self.cart_body.velocity = (np.random.uniform(-5, 5), 0)
-        self.pole1_body.angular_velocity = np.random.uniform(-0.01, 0.01)
-        self.pole2_body.angular_velocity = np.random.uniform(-0.01, 0.01)
+        self.pole1_body.angular_velocity = np.random.uniform(-0.05, 0.05)
+        self.pole2_body.angular_velocity = np.random.uniform(-0.05, 0.05)
 
         return self._get_obs(), {}
 
     def _get_obs(self):
-        # Normalize positions relative to center and screen bounds
+        """Returns a 6D observation vector (Spec Req #3)."""
         cart_x = (self.cart_body.position.x - self.screen_width / 2) / (self.screen_width / 2)
         cart_vx = np.clip(self.cart_body.velocity.x / 500.0, -1.0, 1.0)
-        
-        # Angles and velocities
         theta1 = self.pole1_body.angle
-        v1 = np.clip(self.pole1_body.angular_velocity / 10.0, -1.0, 1.0)
+        omega1 = np.clip(self.pole1_body.angular_velocity / 10.0, -10.0, 10.0)
         theta2 = self.pole2_body.angle
-        v2 = np.clip(self.pole2_body.angular_velocity / 10.0, -1.0, 1.0)
+        omega2 = np.clip(self.pole2_body.angular_velocity / 10.0, -10.0, 10.0)
 
-        # Researcher Instruction: Trig Observations for smooth learning
-        return np.array([
-            cart_x, cart_vx, 
-            np.sin(theta1), np.cos(theta1), v1,
-            np.sin(theta2), np.cos(theta2), v2
-        ], dtype=np.float32)
+        return np.array([cart_x, cart_vx, theta1, omega1, theta2, omega2], dtype=np.float32)
 
     def step(self, action):
-        # Apply force (u)
-        force = action[0] * self.force_mag
+        # Apply horizontal force to cart
+        force = float(action[0]) * self.force_mag
         self.cart_body.apply_force_at_local_point((force, 0), (0, 0))
 
-        # Precision physics step
+        # Sub-step for physics stability (40 sub-steps)
         steps = 40
         for _ in range(steps):
             self.space.step(self.dt / steps)
@@ -140,13 +151,11 @@ class DoublePendulumEnv(gym.Env):
         obs = self._get_obs()
         reward = self._calculate_reward(obs, action)
         
-        # Termination check
         theta1 = self.pole1_body.angle
         theta2 = self.pole2_body.angle
         cart_x = (self.cart_body.position.x - self.screen_width / 2) / (self.screen_width / 2)
         
-        # Let's use a 45 degree (pi/4) fall limit for "Up-Up" state learning
-        limit = np.pi / 4
+        limit = np.pi / 3  # 60 degrees
         terminated = bool(
             abs(theta1) > limit or
             abs(theta2) > limit or
@@ -160,35 +169,51 @@ class DoublePendulumEnv(gym.Env):
         return obs, reward, terminated, truncated, {}
 
     def _calculate_reward(self, obs, action):
-        # Researcher Equilibrium Protocol (EP3) Implementation
-        # y: cart_x, u: action[0]
-        y, y_dot, sin1, cos1, v1, sin2, cos2, v2 = obs
-        u = action[0]
-        
-        # Angles are already maintained in the physics bodies
-        theta1 = self.pole1_body.angle
-        theta2 = self.pole2_body.angle
-        theta1_dot = self.pole1_body.angular_velocity
-        theta2_dot = self.pole2_body.angular_velocity
+        """
+        Two reward functions selectable via self.reward_type:
 
-        # 1. Upright Bonus
-        r_theta1 = 0.5 + 0.5 * np.cos(theta1)
-        r_theta2 = 0.5 + 0.5 * np.cos(theta2)
+        Baseline (Req #4):
+            reward = cos(theta1) + cos(theta2)
+            Range: [-2, 2], maximum when poles are perfectly upright.
 
-        # 2. Center Constraint (y is normalized cart position)
-        r_y = np.exp(-0.5 * abs(y * (self.screen_width / 2) / 100.0)) # Scaling y to a reasonable 'researcher' range
+        Shaped (Req #5):
+            reward = upright_bonus - center_penalty - velocity_penalty - action_penalty
+            Each additional term guides the agent beyond simple survival.
+        """
+        cart_x, cart_vx, theta1, omega1, theta2, omega2 = obs
+        u = float(action[0])
 
-        # 3. Calmness Constraint
-        r_v1 = np.exp(-0.02 * abs(theta1_dot))
-        r_v2 = np.exp(-0.02 * abs(theta2_dot))
+        # Actual physical angles from bodies
+        theta1_phys = self.pole1_body.angle
+        theta2_phys = self.pole2_body.angle
+        omega1_phys = self.pole1_body.angular_velocity
+        omega2_phys = self.pole2_body.angular_velocity
 
-        # 4. Energy Efficiency Constraint
-        r_u = np.exp(-0.015 * abs(u))
+        if self.reward_type == 'baseline':
+            # Req #4: Simple cosine-based upright reward
+            reward = np.cos(theta1_phys) + np.cos(theta2_phys)
+            return float(reward)
 
-        # Total Multiplicative Reward
-        reward = r_u * r_y * r_theta1 * r_theta2 * r_v1 * r_v2
+        elif self.reward_type == 'shaped':
+            # Req #5: Multi-term shaped reward
 
-        return float(reward)
+            # Term 1: Upright Bonus — Reward for keeping both poles vertical
+            upright_bonus = np.cos(theta1_phys) + np.cos(theta2_phys)
+
+            # Term 2: Center Penalty — Penalize cart deviation from track center
+            center_penalty = abs(cart_x) * 0.3
+
+            # Term 3: Velocity Penalty — Penalize fast angular velocities (encourage calmness)
+            velocity_penalty = (abs(omega1_phys) + abs(omega2_phys)) * 0.01
+
+            # Term 4: Action Penalty — Penalize excessive force (energy efficiency)
+            action_penalty = (u ** 2) * 0.001
+
+            reward = upright_bonus - center_penalty - velocity_penalty - action_penalty
+            return float(reward)
+
+        else:
+            return 0.0
 
     def render(self):
         if self.render_mode is None:
@@ -199,12 +224,12 @@ class DoublePendulumEnv(gym.Env):
             if self.render_mode == "human":
                 self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
                 pygame.display.set_caption("Double Inverted Pendulum RL")
-            else: # rgb_array
+            else:  # rgb_array
                 self.screen = pygame.Surface((self.screen_width, self.screen_height))
             self.clock = pygame.time.Clock()
             self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
-        self.screen.fill((255, 255, 255))
+        self.screen.fill((240, 240, 240))
         self.space.debug_draw(self.draw_options)
         
         if self.render_mode == "human":
