@@ -1,49 +1,104 @@
-# Project Review & Video Presentation Guide: The Researcher Protocol (EP3)
-
-## 1. Proving the Achievement: The "Up-Up" Equilibrium
-You have achieved what control researchers call the **Researcher Equilibrium Protocol (EP3)**. 
-
-### Why our final result is superior:
-- **Physically Correct Slider**: We identified that the base was incorrectly rotating in earlier models. In our final definitive version, the cart is locked to a horizontal track using an **Infinite Moment of Inertia**, making it a true lab-grade slider.
-- **8D Phase-Space Intelligence**: We don't just give the AI angles; we give it **Trigonometric Embeddings** ($\sin \theta, \cos \theta$). This eliminates the "edge jumps" at 360 degrees and allows for the silky-smooth balance you see in the final GIF.
-- **Scientific RMSE Proof**: Our top pole balances with a Root Mean Square Error (RMSE) of **0.007 rad**. This is mathematically "perfect" and justifies your success to any reviewer.
+# 🎬 Final Presentation Script & Running Steps
+## Project: Deep RL for Double Inverted Pendulum Control
 
 ---
 
-## 2. Codebase Explanation (The Definitive Stack)
+## Part 1: Project Demo Running Steps
 
-### `environment.py` (The High-Fidelity Simulator)
-This script builds the digital twin of the double pendulum.
-- **Slider Lockdown**: Line 65 sets `moment = float('inf')`, ensuring the base only slides.
-- **Trig Observations**: The `_get_obs()` method maps raw physics to an 8D vector $(\sin \theta_1, \cos \theta_1, \dots)$ for smoother learning.
-- **EP3 Reward**: Implements the Researcher's **Multiplicative Reward Architecture**. It multiplies survival, verticality, and centering into a single strict score, forcing the agent to settle into the "Up-Up" state.
+### Step 1 — Build Docker Image
+```bash
+docker-compose build
+```
+*"I have containerized the entire project with Docker. One command installs Python 3.9, Pymunk, Pytorch, Stable-Baselines3, and the virtual framebuffer."*
 
-### `train.py` (The Neural Architect)
-- **PPO Engine**: Utilizes Proximal Policy Optimization with a deep `[256, 256]` network.
-- **Long-Term Convergence**: We trained for **1,000,000 timesteps** to ensure the agent mastered the complex chaotic torques of the second pole.
+### Step 2 — Train with Both Reward Functions
+```bash
+# Shaped reward (recommended for best results)
+docker-compose run train
+
+# Baseline reward (for comparison)
+docker-compose run train-baseline
+```
+*"I implemented two reward functions as required. The baseline reward is `cos(θ₁) + cos(θ₂)`, rewarding uprightness only. The shaped reward adds a center penalty, velocity penalty, and action penalty for much faster learning."*
+
+### Step 3 — Generate the Evaluation GIF
+```bash
+docker-compose run evaluate-gif
+```
+*"This runs the trained brain headlessly via Xvfb and saves a GIF — no physical monitor needed."*
+
+### Step 4 — View Learning Curves
+```bash
+python plot_results.py
+```
+*"This produces `reward_comparison.png`, showing both reward curves side-by-side over 200k training steps."*
 
 ---
 
-## 3. The Role of Docker
-Docker ensures that your project runs identically on any computer. It isolates the complex physics dependencies (`Pymunk`, `PyGame`) and allows for **Headless Rendering** via `Xvfb`. This lets you generate high-definition evaluation GIFs entirely in the background.
+## Part 2: Video Presentation Script
+
+### [INTRO — Show title screen]
+> "Hello. I've built a complete Reinforcement Learning system to solve one of the hardest classical control problems: balancing a double inverted pendulum. This is harder than the famous CartPole — we have two linked poles that must both stay upright simultaneously."
 
 ---
 
-## 4. Video Presentation Script
+### [Screen Share — Show `environment.py`]
+> "I built the physics simulation from scratch using **Pymunk**, a 2D rigid-body engine. I use:
+> - A `GrooveJoint` to lock the cart to a horizontal track, so it can only **slide** — just like a real-world lab pendulum.
+> - Two `PivotJoint` connections — one between cart and pole 1, and one between pole 1 and pole 2.
+> - 40 physics sub-steps per render frame for simulation accuracy.
+>
+> The observation space is a **6D vector**: `[cart_x, vx, θ₁, ω₁, θ₂, ω₂]`, giving the agent complete knowledge of the system state."
 
-*Use this script for your submission video.*
+---
 
-**[Intro - Title Screen]**
-"Hello. For my Reinforcement Learning project, I have mastered the control of a chaotic, underactuated system: The Double Inverted Pendulum. I specifically implemented the **Researcher Equilibrium Protocol (EP3)** to achieve a perfect 'Up-Up' balance."
+### [Screen Share — Show `_calculate_reward` in `environment.py`]
+> "Reward engineering is the scientific heart of this project.
+>
+> My **baseline reward** is simply `cos(θ₁) + cos(θ₂)`. It's maximal at +2 when both poles are upright and falls to -2 when fully inverted. This is the minimum necessary signal.
+>
+> My **shaped reward** builds on this with three additional terms:
+> - A **center penalty** that prevents the cart from drifting to the track limits.
+> - A **velocity penalty** that discourages chaotic oscillations.
+> - An **action penalty** that reduces wasted energy.
+>
+> This 'Reward Shaping' technique is a cornerstone of practical RL and is why the shaped agent converges much faster."
 
-**[Screen Share - Show `environment.py`]**
-"The foundation is a high-fidelity physics world built in `Pymunk`. I implemented 40 sub-steps per frame for stability and, crucially, I locked the base to a horizontal slider model by setting its moment of inertia to infinity. This ensures a physically correct lab-style simulation."
+---
 
-**[Screen Share - Show `media/stability_proof.png`]**
-"To prove the effectiveness of the AI, I conducted a scientific stability test. My final agent maintains the top pole with an RMSE of **0.007 radians**—essentially zero error. This was achieved by providing the agent with an 8D trigonometric observation space, allowing it to navigate the chaotic state manifold without discontinuities."
+### [Screen Share — Show `reward_comparison.png`]
+> "Here is the empirical proof. Both agents were trained for 200,000 PPO timesteps. The shaped reward (top line) consistently achieves higher and more stable rewards because it provides richer feedback at every step."
 
-**[Screen Share - Show `media/definitive_final.gif`]**
-"Here is the result. You can see the sliding base making rapid micro-adjustments to keep the chaotic poles in a perfect vertical stack. This is the **Researcher EP3 Equilibrium**. The agent successfully balances survival with energy efficiency and centering."
+---
 
-**[Outro]**
-"By combining physically-correct constraints with a multiplicative reward protocol, I have developed a control system that dominates non-linear chaotic dynamics. Thank you."
+### [Screen Share — Show `media/agent_initial.gif`]
+> "This is the early-stage agent — essentially random exploration. Watch how the poles immediately fall and the cart shows no directional strategy."
+
+### [Screen Share — Show `media/agent_final.gif`]
+> "And here is the trained agent. The base is now correctly **sliding left and right** — not rotating. The agent has learned to use micro-corrections to keep both poles balanced in their equilibrium position."
+
+---
+
+### [Screen Share — Show Terminal `docker-compose build`]
+> "The entire project is containerized with Docker. I use `Xvfb` — a virtual framebuffer — to allow headless GIF generation inside the container, even without a physical monitor. This ensures the project runs identically on any machine."
+
+---
+
+### [OUTRO]
+> "In summary, I've built a complete RL pipeline: a physically-accurate custom gym environment, two scientifically-designed reward functions, a fully-automated training and evaluation pipeline, and a reproducible Docker infrastructure.
+>
+> The final trained agent balances a chaotic double inverted pendulum by sliding a cart along a track — the same principle used to control bipedal robots and precision robotic arms. Thank you."
+
+---
+
+## Part 3: Quick Command Reference Card
+
+| Goal | Command |
+|------|---------|
+| Build Docker | `docker-compose build` |
+| Train (shaped) | `docker-compose run train` |
+| Train (baseline) | `docker-compose run train-baseline` |
+| Generate GIF | `docker-compose run evaluate-gif` |
+| Live evaluation | `python evaluate.py --model_path models/ppo_shaped_v2_shaped` |
+| Plot rewards | `python plot_results.py` |
+| Check logs | `tail -f logs/shaped/monitor.csv` |
