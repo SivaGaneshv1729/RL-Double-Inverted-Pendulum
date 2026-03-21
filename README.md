@@ -63,7 +63,7 @@ docker-compose build
 
 #### 2. Train the Agent
 ```bash
-# Train with shaped reward (recommended) for 200,000 timesteps
+# Train with shaped reward (recommended) for 500,000 timesteps
 docker-compose run train
 
 # Train with baseline reward
@@ -79,7 +79,7 @@ python train.py --timesteps 500000 --reward_type shaped --save_path models/my_mo
 docker-compose run evaluate-gif
 
 # Live window evaluation (requires display)
-python evaluate.py --model_path models/ppo_double_pendulum_final_ep3_shaped
+python evaluate.py --model_path models/ppo_shaped_500k_shaped
 ```
 
 #### 4. View Training Logs
@@ -117,8 +117,7 @@ python plot_results.py --log_dir logs/shaped --output reward_comparison.png
 ├── docker-compose.yml
 ├── requirements.txt
 ├── .env.example
-├── models/                 # Saved model weights
+└── models/                 # Saved model weights
 ├── logs/                   # Training logs (CSV)
-├── media/                  # GIFs and plots
-└── docs/                   # Technical documentation
+└── media/                  # GIFs and plots
 ```
