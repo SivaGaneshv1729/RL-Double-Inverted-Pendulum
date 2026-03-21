@@ -12,13 +12,13 @@ services:
     build: .
     volumes:
       - .:/app
-    command: python train.py --timesteps 200000 --reward_type shaped
+    command: python train.py --timesteps ${TOTAL_TIMESTEPS} --reward_type ${REWARD_TYPE}
 
   train-baseline:
     build: .
     volumes:
       - .:/app
-    command: python train.py --timesteps 200000 --reward_type baseline
+    command: python train.py --timesteps ${TOTAL_TIMESTEPS} --reward_type baseline
 
   evaluate:
     build: .
@@ -27,11 +27,11 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - .:/app
-    command: python evaluate.py --model_path models/ppo_double_pendulum_final_ep3_shaped.zip
+    command: python evaluate.py --model_path ${MODEL_PATH}
 
   evaluate-gif:
     build: .
     volumes:
       - .:/app
     # Use Xvfb for GIF generation so it doesn't need a real display
-    command: sh -c "Xvfb :99 -screen 0 800x600x24 & DISPLAY=:99 python evaluate.py --model_path models/ppo_double_pendulum_final_ep3_shaped.zip --episodes 1 --gif_name agent_final.gif"
+    command: sh -c "Xvfb :99 -screen 0 800x600x24 & DISPLAY=:99 python evaluate.py --model_path ${MODEL_PATH} --episodes 1 --gif_name agent_final.gif"
