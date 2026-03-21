@@ -2,7 +2,8 @@
 __pycache__/
 logs/
 models/*
-!models/ppo_double_pendulum_final_ep3_shaped.zip
+!models/ppo_shaped_500k_shaped.zip
+!models/ppo_baseline_baseline.zip
 *.log
 !media/*.gif
 !media/*.png
