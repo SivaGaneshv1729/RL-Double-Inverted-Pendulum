@@ -71,13 +71,13 @@ def main():
     print("=" * 55)
 
     initial_path = "models/ppo_baseline_baseline"
-    final_path   = "models/ppo_shaped_v2_shaped"
+    final_path   = "models/ppo_shaped_500k_shaped"
 
     print(f"\nEvaluating Initial model ({initial_path})...")
     initial = evaluate_model(initial_path, "Initial (5k steps)")
 
     print(f"\nEvaluating Final model ({final_path})...")
-    final = evaluate_model(final_path, "Final (200k steps)")
+    final = evaluate_model(final_path, "Final (500k steps)")
 
     if initial is None or final is None:
         print("Cannot compare — check model paths.")
@@ -177,7 +177,7 @@ def main():
     sax(ax, 'Per-Episode Rewards (5 runs)\n(Higher is Better ✓)')
 
     fig.suptitle(
-        'Proof of Stabilisation: Initial (5k steps) vs Trained (200k steps)',
+        'Proof of Stabilisation: Initial (5k steps) vs Trained (500k steps)',
         color='white', fontsize=13, fontweight='bold'
     )
 
